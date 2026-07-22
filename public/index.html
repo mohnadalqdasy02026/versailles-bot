@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WhatsApp AI Bot - Dashboard</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+      background: #0f1419;
+      color: #e7e9ea;
+      min-height: 100vh;
+      direction: rtl;
+    }
+
+    /* Header */
+    .header {
+      background: #1a1f2e;
+      padding: 20px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #2f3a52;
+    }
+
+    .header h1 {
+      font-size: 1.5rem;
+      color: #25D366;
+    }
+
+    .header h1 span {
+      color: #fff;
+    }
+
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    .status-badge.connected {
+      background: rgba(37, 211, 102, 0.15);
+      color: #25D366;
+    }
+
+    .status-badge.disconnected {
+      background: rgba(255, 77, 77, 0.15);
+      color: #ff4d4d;
+    }
+
+    .status-badge.qr_ready {
+      background: rgba(255, 193, 7, 0.15);
+      color: #ffc107;
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .status-badge.connected .status-dot {
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    /* Main Layout */
+    .main-container {
+      display: grid;
+      grid-template-columns: 1fr 350px;
+      gap: 20px;
+      padding: 20px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    @media (max-width: 900px) {
+      .main-container {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Card */
+    .card {
+      background: #1a1f2e;
+      border-radius: 16px;
+      padding: 24px;
+      border: 1px solid #2f3a52;
+    }
+
+    .card-title {
+      font-size: 1.1rem;
+      margin-bottom: 20px;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* QR Section */
+    .qr-container {
+      text-align: center;
+    }
+
+    .qr-placeholder {
+      background: #2f3a52;
+      border-radius: 12px;
+      padding: 60px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .qr-icon {
+      font-size: 4rem;
+    }
+
+    .qr-text {
+      color: #8899a6;
+      font-size: 0.9rem;
+    }
+
+    #qrImage {
+      max-width: 300px;
+      border-radius: 12px;
+      background: #fff;
+      padding: 20px;
+    }
+
+    /* Instructions */
+    .instructions {
+      background: #2f3a52;
+      border-radius: 12px;
+      padding: 20px;
+      margin-top: 20px;
+    }
+
+    .instructions h3 {
+      font-size: 0.95rem;
+      margin-bottom: 12px;
+      color: #fff;
+    }
+
+    .instructions ol {
+      padding-right: 20px;
+      color: #8899a6;
+      font-size: 0.85rem;
+      line-height: 1.8;
+    }
+
+    /* Conversations */
+    .conversations-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-height: 500px;
+      overflow-y: auto;
+    }
+
+    .conv-item {
+      background: #2f3a52;
+      border-radius: 12px;
+      padding: 16px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .conv-item:hover {
+      background: #3a4561;
+    }
+
+    .conv-item.active {
+      background: #3a4561;
+      border: 1px solid #25D366;
+    }
+
+    .conv-phone {
+      font-weight: 600;
+      color: #fff;
+      font-size: 0.9rem;
+    }
+
+    .conv-preview {
+      color: #8899a6;
+      font-size: 0.8rem;
+      margin-top: 6px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .conv-time {
+      color: #657786;
+      font-size: 0.75rem;
+      margin-top: 4px;
+    }
+
+    /* Chat Panel */
+    .chat-panel {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
+
+    .chat-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 16px;
+      border-bottom: 1px solid #2f3a52;
+      margin-bottom: 16px;
+    }
+
+    .chat-with {
+      font-size: 1rem;
+      font-weight: 600;
+    }
+
+    .clear-chat {
+      background: #ff4d4d33;
+      color: #ff4d4d;
+      border: none;
+      padding: 6px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      transition: background 0.2s;
+    }
+
+    .clear-chat:hover {
+      background: #ff4d4d55;
+    }
+
+    .messages {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-height: 400px;
+      overflow-y: auto;
+      padding-left: 10px;
+    }
+
+    .message {
+      max-width: 85%;
+      padding: 12px 16px;
+      border-radius: 16px;
+      font-size: 0.9rem;
+      line-height: 1.6;
+    }
+
+    .message.user {
+      background: #25D366;
+      color: #000;
+      align-self: flex-start;
+      border-bottom-right-radius: 4px;
+    }
+
+    .message.bot {
+      background: #2f3a52;
+      color: #e7e9ea;
+      align-self: flex-end;
+      border-bottom-left-radius: 4px;
+    }
+
+    .message-time {
+      font-size: 0.7rem;
+      opacity: 0.6;
+      margin-top: 4px;
+    }
+
+    /* Send Message Form */
+    .send-form {
+      display: flex;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .send-form input {
+      flex: 1;
+      background: #2f3a52;
+      border: 1px solid #3a4561;
+      color: #fff;
+      padding: 12px 16px;
+      border-radius: 12px;
+      font-size: 0.9rem;
+      outline: none;
+    }
+
+    .send-form input:focus {
+      border-color: #25D366;
+    }
+
+    .send-form button {
+      background: #25D366;
+      color: #000;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.9rem;
+      transition: background 0.2s;
+    }
+
+    .send-form button:hover {
+      background: #20bd5a;
+    }
+
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #8899a6;
+    }
+
+    .empty-icon {
+      font-size: 3rem;
+      margin-bottom: 16px;
+    }
+
+    /* Stats */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .stat-card {
+      background: #2f3a52;
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #25D366;
+    }
+
+    .stat-label {
+      font-size: 0.8rem;
+      color: #8899a6;
+      margin-top: 4px;
+    }
+
+    /* Restart Button */
+    .restart-btn {
+      width: 100%;
+      background: #ff980033;
+      color: #ff9800;
+      border: 1px solid #ff980055;
+      padding: 12px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      margin-top: 20px;
+      transition: background 0.2s;
+    }
+
+    .restart-btn:hover {
+      background: #ff980055;
+    }
+
+    /* API Key Warning */
+    .warning-banner {
+      background: #ffc10722;
+      border: 1px solid #ffc10755;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 20px;
+      font-size: 0.85rem;
+      color: #ffc107;
+    }
+
+    .warning-banner a {
+      color: #25D366;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🤖 WhatsApp <span>AI Bot</span></h1>
+    <div class="status-badge disconnected" id="statusBadge">
+      <div class="status-dot"></div>
+      <span id="statusText">غير متصل</span>
+    </div>
+  </div>
+
+  <div class="main-container">
+    <!-- Left Panel -->
+    <div>
+      <!-- Stats -->
+      <div class="card" style="margin-bottom: 20px;">
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-value" id="convCount">0</div>
+            <div class="stat-label">محادثات</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="msgCount">0</div>
+            <div class="stat-label">رسالة</div>
+          </div>
+        </div>
+        <div class="warning-banner" id="apiWarning">
+          ⚠️ لم يتم إعداد مفتاح API بعد. راجع ملف <code>.env</code> وأضف <code>AI_API_KEY</code>
+        </div>
+        <button class="restart-btn" onclick="restartBot()">🔄 إعادة تشغيل البوت</button>
+      </div>
+
+      <!-- Chat Panel -->
+      <div class="card">
+        <div id="chatPanel">
+          <div class="empty-state">
+            <div class="empty-icon">💬</div>
+            <p>اختر محادثة من القائمة لعرض الرسائل</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Panel -->
+    <div>
+      <!-- QR / Connection -->
+      <div class="card" style="margin-bottom: 20px;">
+        <div class="card-title">📱 ربط WhatsApp</div>
+        <div class="qr-container" id="qrContainer">
+          <div class="qr-placeholder">
+            <div class="qr-icon">📡</div>
+            <p class="qr-text" id="qrText">في انتظار رمز QR...</p>
+          </div>
+        </div>
+        <div class="instructions">
+          <h3>📋 خطوات الربط:</h3>
+          <ol>
+            <li>افتح WhatsApp على جوالك</li>
+            <li>اضغط على النقاط الثلاث ← الأجهزة المرتبطة</li>
+            <li>امسح رمز QR الموجود هنا</li>
+            <li>بمجرد الربط، البوت سيبدأ بالرد تلقائياً</li>
+          </ol>
+        </div>
+      </div>
+
+      <!-- Conversations -->
+      <div class="card">
+        <div class="card-title">💬 المحادثات</div>
+        <div class="conversations-list" id="conversationsList">
+          <div class="empty-state" style="padding: 30px;">
+            <p>لا توجد محادثات بعد</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentPhone = null;
+    let conversations = {};
+    let pollInterval = null;
+
+    // --- API Status Check ---
+    async function checkAPIKey() {
+      try {
+        const response = await fetch('/api/status');
+        const data = await response.json();
+        
+        // Check if AI_API_KEY is configured
+        const hasApiKey = document.querySelector('.warning-banner');
+        if (hasApiKey) {
+          hasApiKey.style.display = 'none';
+        }
+      } catch (e) {
+        console.log('API not ready');
+      }
+    }
+
+    // --- Poll Status ---
+    async function pollStatus() {
+      try {
+        const res = await fetch('/api/status');
+        const data = await res.json();
+
+        // Update status badge
+        const badge = document.getElementById('statusBadge');
+        const statusText = document.getElementById('statusText');
+        
+        badge.className = 'status-badge ' + data.status;
+        
+        const statusMap = {
+          'connected': 'متصل ✅',
+          'disconnected': 'غير متصل',
+          'qr_ready': 'في انتظار المسح 📱',
+          'authenticated': 'جاري التوصيل...',
+          'auth_failure': 'فشل التوثيق ❌'
+        };
+        statusText.textContent = statusMap[data.status] || data.status;
+
+        // Update QR
+        if (data.status === 'qr_ready') {
+          const qrRes = await fetch('/api/qr');
+          if (qrRes.ok) {
+            const qrData = await qrRes.json();
+            const container = document.getElementById('qrContainer');
+            container.innerHTML = `
+              <div style="text-align:center;">
+                <img id="qrImage" src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrData.qr)}" alt="QR Code">
+                <p style="color:#8899a6;margin-top:12px;font-size:0.85rem;">امسح هذا الرمز بواتساب</p>
+              </div>
+            `;
+          }
+        }
+
+        // Update conversations
+        await loadConversations();
+
+      } catch (e) {
+        console.error('Poll error:', e);
+      }
+    }
+
+    // --- Load Conversations ---
+    async function loadConversations() {
+      try {
+        const res = await fetch('/api/conversations');
+        const data = await res.json();
+        
+        conversations = {};
+        let totalMsgs = 0;
+        
+        const list = document.getElementById('conversationsList');
+        
+        if (!data.conversations || data.conversations.length === 0) {
+          list.innerHTML = '<div class="empty-state" style="padding:30px;"><p>لا توجد محادثات بعد</p></div>';
+          document.getElementById('convCount').textContent = '0';
+          document.getElementById('msgCount').textContent = '0';
+          return;
+        }
+
+        document.getElementById('convCount').textContent = data.conversations.length;
+
+        data.conversations.forEach(conv => {
+          conversations[conv.phone] = conv;
+          totalMsgs += conv.messageCount;
+        });
+
+        document.getElementById('msgCount').textContent = totalMsgs;
+
+        list.innerHTML = data.conversations.map(conv => `
+          <div class="conv-item ${conv.phone === currentPhone ? 'active' : ''}" 
+               onclick="selectConversation('${conv.phone}')">
+            <div class="conv-phone">${formatPhone(conv.phone)}</div>
+            <div class="conv-preview">${conv.lastMessage || '...'}</div>
+            <div class="conv-time">${formatTime(conv.lastActivity)}</div>
+          </div>
+        `).join('');
+
+      } catch (e) {
+        console.error('Load conversations error:', e);
+      }
+    }
+
+    // --- Select Conversation ---
+    async function selectConversation(phone) {
+      currentPhone = phone;
+      
+      // Update UI
+      document.querySelectorAll('.conv-item').forEach(el => {
+        el.classList.toggle('active', el.onclick.toString().includes(phone));
+      });
+
+      try {
+        const res = await fetch(`/api/conversations/${encodeURIComponent(phone)}`);
+        const data = await res.json();
+
+        const panel = document.getElementById('chatPanel');
+        panel.innerHTML = `
+          <div class="chat-header">
+            <div class="chat-with">💬 ${formatPhone(phone)}</div>
+            <button class="clear-chat" onclick="clearConversation('${phone}')">🗑️ مسح</button>
+          </div>
+          <div class="messages" id="messagesContainer">
+            ${data.history.map(msg => `
+              <div class="message ${msg.role === 'user' ? 'user' : 'bot'}">
+                ${escapeHtml(msg.content)}
+                <div class="message-time">${formatTime(msg.timestamp)}</div>
+              </div>
+            `).join('')}
+          </div>
+          <form class="send-form" onsubmit="sendMessage(event, '${phone}')">
+            <input type="text" id="msgInput" placeholder="اكتب رسالة..." autocomplete="off">
+            <button type="submit">إرسال</button>
+          </form>
+        `;
+
+        // Scroll to bottom
+        const container = document.getElementById('messagesContainer');
+        container.scrollTop = container.scrollHeight;
+
+      } catch (e) {
+        console.error('Select conversation error:', e);
+      }
+    }
+
+    // --- Send Message ---
+    async function sendMessage(e, phone) {
+      e.preventDefault();
+      const input = document.getElementById('msgInput');
+      const message = input.value.trim();
+      
+      if (!message) return;
+
+      try {
+        const res = await fetch('/api/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone, message })
+        });
+
+        if (res.ok) {
+          input.value = '';
+          await selectConversation(phone);
+        }
+      } catch (e) {
+        console.error('Send error:', e);
+      }
+    }
+
+    // --- Clear Conversation ---
+    async function clearConversation(phone) {
+      if (!confirm('هل أنت متأكد من مسح هذه المحادثة؟')) return;
+
+      try {
+        await fetch(`/api/conversations/${encodeURIComponent(phone)}`, { method: 'DELETE' });
+        currentPhone = null;
+        document.getElementById('chatPanel').innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">💬</div>
+            <p>اختر محادثة من القائمة لعرض الرسائل</p>
+          </div>
+        `;
+        await loadConversations();
+      } catch (e) {
+        console.error('Clear error:', e);
+      }
+    }
+
+    // --- Restart Bot ---
+    async function restartBot() {
+      if (!confirm('هل تريد إعادة تشغيل البوت؟')) return;
+      
+      try {
+        await fetch('/api/restart', { method: 'POST' });
+        setTimeout(pollStatus, 2000);
+      } catch (e) {
+        console.error('Restart error:', e);
+      }
+    }
+
+    // --- Helpers ---
+    function formatPhone(phone) {
+      return phone.replace('@c.us', '').replace('@g.us', '');
+    }
+
+    function formatTime(timestamp) {
+      if (!timestamp) return '';
+      const d = new Date(timestamp);
+      return d.toLocaleString('ar-SA', { 
+        day: 'numeric', 
+        month: 'short', 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      });
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // --- Init ---
+    pollStatus();
+    pollInterval = setInterval(pollStatus, 5000);
+    checkAPIKey();
+  </script>
+</body>
+</html>
