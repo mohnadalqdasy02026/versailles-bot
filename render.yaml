@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: versailles-hotel-bot
+    env: docker
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: GROQ_API_KEY
+        sync: false
+      - key: NODE_ENV
+        value: production
