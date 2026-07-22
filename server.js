@@ -112,97 +112,109 @@ function getFallbackResponse(text, name) {
 
 // --- Pending Messages ---
 const pending = {};
-const RESPONSE_DELAY = 60000;
+const RESPONSE_DELAY = 5000;
 
 // --- WhatsApp Client ---
 let qrCode = null;
 let isConnected = false;
+let client;
 
-const client = new Client({
-  authStrategy: new LocalAuth({ dataPath: './auth_info_baileys' }),
-  puppeteer: {
-    headless: true,
-    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',
-      '--disable-gpu'
-    ]
-  }
-});
-
-client.on('qr', (qr) => {
-  qrCode = qr;
-  console.log('📱 QR Code generated! Scan from WhatsApp.');
-});
-
-client.on('ready', () => {
-  console.log('✅✅ Bot Connected Successfully!');
-  isConnected = true;
-  qrCode = null;
-});
-
-client.on('authenticated', () => {
-  console.log('🔐 Authenticated!');
-});
-
-client.on('auth_failure', (msg) => {
-  console.log('❌ Auth Failure:', msg);
-  isConnected = false;
-});
-
-client.on('disconnected', (reason) => {
-  console.log('⚠️ Disconnected:', reason);
-  isConnected = false;
-});
-
-client.on('message', async (msg) => {
-  if (msg.fromMe) return;
-
-  const from = msg.from;
-  const isGroup = from.includes('@g.us');
-  if (isGroup) return;
-
-  const body = msg.body;
-  if (!body) return;
-
-  const name = msg._data?.notifyName || 'ضيفنا';
-  console.log(`\n💬 ${name}: ${body}`);
-
-  addMessage(from, 'user', body);
-
-  if (!pending[from]) {
-    pending[from] = { messages: [], timer: null };
-  }
-
-  pending[from].messages.push(body);
-
-  if (pending[from].timer) {
-    clearTimeout(pending[from].timer);
-  }
-
-  console.log(`⏳ جاري الانتظار...`);
-
-  pending[from].timer = setTimeout(async () => {
-    console.log(`🤖 جاري الرد...`);
-
-    const msgs = [...pending[from].messages];
-    pending[from] = null;
-
-    const reply = await getAIResponse(msgs, name);
-    console.log(`🤖 ${reply.substring(0, 50)}...`);
-
-    addMessage(from, 'bot', reply);
-
-    try {
-      await client.sendMessage(from, reply);
-      console.log('✅ تم!');
-    } catch (err) {
-      console.log('❌ خطأ:', err.message);
+function createClient() {
+  client = new Client({
+    authStrategy: new LocalAuth({ dataPath: './auth_info_baileys' }),
+    puppeteer: {
+      headless: true,
+      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+        '--disable-extensions',
+        '--disable-background-networking'
+      ]
     }
-  }, RESPONSE_DELAY);
-});
+  });
+
+  client.on('qr', (qr) => {
+    qrCode = qr;
+    console.log('📱 QR Code generated! Scan from WhatsApp.');
+  });
+
+  client.on('ready', () => {
+    console.log('✅✅ Bot Connected Successfully!');
+    isConnected = true;
+    qrCode = null;
+  });
+
+  client.on('authenticated', () => {
+    console.log('🔐 Authenticated!');
+  });
+
+  client.on('auth_failure', (msg) => {
+    console.log('❌ Auth Failure:', msg);
+    isConnected = false;
+  });
+
+  client.on('disconnected', (reason) => {
+    console.log('⚠️ Disconnected:', reason);
+    isConnected = false;
+    qrCode = null;
+    console.log('🔄 Reconnecting in 5 seconds...');
+    setTimeout(() => {
+      client.destroy();
+      createClient();
+      client.initialize();
+    }, 5000);
+  });
+
+  client.on('message', async (msg) => {
+    if (msg.fromMe) return;
+
+    const from = msg.from;
+    const isGroup = from.includes('@g.us');
+    if (isGroup) return;
+
+    const body = msg.body;
+    if (!body) return;
+
+    const name = msg._data?.notifyName || 'ضيفنا';
+    console.log(`\n💬 ${name}: ${body}`);
+
+    addMessage(from, 'user', body);
+
+    if (!pending[from]) {
+      pending[from] = { messages: [], timer: null };
+    }
+
+    pending[from].messages.push(body);
+
+    if (pending[from].timer) {
+      clearTimeout(pending[from].timer);
+    }
+
+    console.log(`⏳ جاري الانتظار...`);
+
+    pending[from].timer = setTimeout(async () => {
+      console.log(`🤖 جاري الرد...`);
+
+      const msgs = [...pending[from].messages];
+      pending[from] = null;
+
+      const reply = await getAIResponse(msgs, name);
+      console.log(`🤖 ${reply.substring(0, 50)}...`);
+
+      addMessage(from, 'bot', reply);
+
+      try {
+        await client.sendMessage(from, reply);
+        console.log('✅ تم!');
+      } catch (err) {
+        console.log('❌ خطأ:', err.message);
+      }
+    }, RESPONSE_DELAY);
+  });
+}
 
 // --- Express Server ---
 const app = express();
@@ -281,6 +293,7 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`\n🌐 Dashboard: http://localhost:${PORT}\n`);
   console.log('📱 Scan QR from terminal or visit /api/qr\n');
+  createClient();
   client.initialize();
 });
 
